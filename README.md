@@ -6,9 +6,13 @@
 
 #### JavaScript library for rapid XR and AI prototyping
 
+[Site](https://xrblocks.github.io/) &mdash;
 [Manual](https://xrblocks.github.io/docs/) &mdash;
 [Templates](https://xrblocks.github.io/docs/templates/Basic/) &mdash;
-[Samples](https://xrblocks.github.io/docs/samples/ModelViewer/)
+[Demos](https://xrblocks.github.io/docs/samples/ModelViewer/) &mdash;
+[YouTube](https://www.youtube.com/watch?v=75QJHTsAoB8) &mdash;
+[arXiv](https://arxiv.org/abs/2509.25504) &mdash;
+[Blog](https://research.google/blog/xr-blocks-accelerating-ai-xr-innovation/)
 
 <p align="center">
   <a href="https://xrblocks.github.io/docs/samples/Ballpit/" target="_blank"><img width="32.3%" src="https://cdn.jsdelivr.net/gh/google/xrblocks@main/assets/ballpit-demo.webp" alt="Ballpit" /></a>
@@ -26,20 +30,26 @@ user-centric, developer-friendly SDK designed to simplify the creation of
 immersive applications with features like:
 
 - **Hand Tracking & Gestures:** Access advanced hand tracking, custom
-  gestures with TensorFlow Lite / LiteRT models, and interaction events.
+  gestures with TensorFlow Lite / PyTorch models, and interaction events.
 - **World Understanding:** Present samples with depth sensing, geometry-aware
-  physics, and object recognition with Gemini in both XR and desktop.
+  physics, and object recognition with Gemini in both XR and desktop simulator.
 - **AI Integration:** Seamlessly connect to Gemini for multimodal
   understanding and live conversational experiences.
 - **Cross-Platform:** Write once and deploy to both XR devices and desktop
-  browsers.
+  Chrome browsers.
+
+We welcome all contributors to foster an AI + XR community! Read our
+[blog post](https://research.google/blog/xr-blocks-accelerating-ai-xr-innovation/)
+and [white paper](https://arxiv.org/abs/2509.25504) for a visionary roadmap.
 
 ### Usage
 
 XR Blocks can be imported directly into a webpage using an importmap. This code
 creates a basic XR scene containing a cylinder. When you view the scene, you can
 pinch your fingers (in XR) or click (in the desktop simulator) to change the
-cylinder's color.
+cylinder's color. Check out
+[this live demo](https://xrblocks.github.io/docs/templates/Basic/) with simple
+code below:
 
 ```html
 <!DOCTYPE html>
@@ -132,8 +142,9 @@ npm ci
 npm run build
 ```
 
-This is not an officially supported Google product. This project is not eligible
-for the
+This is not an officially supported Google product, but will be actively
+maintained by the XR Labs team and external collaborators. This project is not
+eligible for the
 [Google Open Source Software Vulnerability Rewards Program](https://bughunters.google.com/open-source-security).
 
 ### User Data & Permissions
@@ -200,7 +211,7 @@ as:
 }
 ```
 
-### Key Works Built with XR Blocks
+#### Key Works Built with XR Blocks
 
 These references are built with XR Blocks:
 
@@ -217,7 +228,7 @@ These references are built with XR Blocks:
 }
 ```
 
-### Inspiring Related Works
+#### Inspiring Related Works
 
 We call for contributors to integrate our prior art into XR Blocks to enhance
 reproducibility and knowledge sharing:
