@@ -31,6 +31,7 @@ export * from './input/components/HandJointNames';
 export * from './input/GazeController';
 export * from './input/Hands';
 export * from './input/HandsOptions';
+export * from './input/gestures/GestureRecognitionBlock';
 export * from './input/gestures/GestureRecognitionOptions';
 export * from './input/gestures/GestureEvents';
 export * from './input/Input';
