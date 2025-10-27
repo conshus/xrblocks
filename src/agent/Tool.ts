@@ -1,4 +1,4 @@
-import type * as GoogleGenAITypes from '@google/genai';
+import * as GoogleGenAITypes from '@google/genai';
 
 export interface ToolCall {
   name: string;
@@ -39,6 +39,7 @@ export type ToolOptions = {
   parameters?: ToolSchema;
   /** A callback to execute when the tool is triggered */
   onTriggered?: (args: unknown) => unknown | Promise<unknown>;
+  behavior?: 'BLOCKING' | 'NON_BLOCKING' | GoogleGenAITypes.Behavior;
 };
 
 /**
@@ -49,6 +50,7 @@ export class Tool {
   description?: string;
   parameters?: ToolSchema;
   onTriggered?: (args: unknown) => unknown;
+  behavior?: 'BLOCKING' | 'NON_BLOCKING';
 
   /**
    * @param options - The options for the tool.
@@ -58,6 +60,7 @@ export class Tool {
     this.description = options.description;
     this.parameters = options.parameters || {};
     this.onTriggered = options.onTriggered;
+    this.behavior = options.behavior as 'BLOCKING' | 'NON_BLOCKING';
   }
 
   /**
@@ -98,6 +101,9 @@ export class Tool {
     }
     if (this.parameters) {
       result.parameters = this.parameters as GoogleGenAITypes.Schema;
+    }
+    if (this.behavior) {
+      result.behavior = this.behavior as GoogleGenAITypes.Behavior;
     }
     return result;
   }
