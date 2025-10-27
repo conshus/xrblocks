@@ -1,6 +1,7 @@
 import type * as GoogleGenAITypes from '@google/genai';
 import * as THREE from 'three';
 import * as xb from 'xrblocks';
+import {AUDIO_CAPTURE_PROCESSOR_CODE} from './AudioCaptureProcessorCode';
 
 export interface GeminiManagerEventMap extends THREE.Object3DEventMap {
   inputTranscription: {message: string};
@@ -45,8 +46,10 @@ export class GeminiManager extends xb.Script<GeminiManagerEventMap> {
 
   async startGeminiLive({
     liveParams,
+    model,
   }: {
     liveParams?: xb.GeminiStartLiveSessionParams;
+    model?: string;
   } = {}) {
     if (this.isAIRunning || !this.ai) {
       console.warn('AI already running or not available');
@@ -60,7 +63,7 @@ export class GeminiManager extends xb.Script<GeminiManagerEventMap> {
     }
     try {
       await this.setupAudioCapture();
-      await this.startLiveAI(liveParams);
+      await this.startLiveAI(liveParams, model);
       this.startScreenshotCapture();
       this.isAIRunning = true;
     } catch (error) {
@@ -105,9 +108,11 @@ export class GeminiManager extends xb.Script<GeminiManagerEventMap> {
     }
 
     this.audioContext = new AudioContext({sampleRate: 16000});
-    await this.audioContext.audioWorklet.addModule(
-      './AudioCaptureProcessor.js'
-    );
+    const blob = new Blob([AUDIO_CAPTURE_PROCESSOR_CODE], {
+      type: 'text/javascript',
+    });
+    const blobUrl = URL.createObjectURL(blob);
+    await this.audioContext.audioWorklet.addModule(blobUrl);
     this.sourceNode = this.audioContext.createMediaStreamSource(
       this.audioStream
     );
@@ -125,7 +130,7 @@ export class GeminiManager extends xb.Script<GeminiManagerEventMap> {
     this.processorNode.connect(this.audioContext.destination);
   }
 
-  async startLiveAI(params: xb.GeminiStartLiveSessionParams) {
+  async startLiveAI(params: xb.GeminiStartLiveSessionParams, model?: string) {
     return new Promise<void>((resolve, reject) => {
       this.ai.setLiveCallbacks({
         onopen: () => {
@@ -143,7 +148,7 @@ export class GeminiManager extends xb.Script<GeminiManagerEventMap> {
         },
       });
 
-      this.ai.startLiveSession(params).catch(reject);
+      this.ai.startLiveSession(params, model).catch(reject);
     });
   }
 
@@ -303,7 +308,11 @@ export class GeminiManager extends xb.Script<GeminiManagerEventMap> {
               functionResponses: {
                 id: functionCall.id,
                 name: functionCall.name,
-                response: {output: result},
+                response: {
+                  output: result.data,
+                  error: result.error,
+                  ...result.metadata,
+                },
               },
             });
           })
