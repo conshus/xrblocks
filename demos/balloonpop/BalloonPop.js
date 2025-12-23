@@ -10,7 +10,7 @@ import {
   Vector3,
 } from 'three';
 
-import { Audio } from './audio.js';
+import {audio} from './audio.js';
 
 const COLORS = {
   RED: 0xf5554a,
@@ -19,12 +19,7 @@ const COLORS = {
   YELLOW: 0xfff7a8,
 };
 
-const BALLOON_COLORS = [
-  COLORS.RED,
-  COLORS.BLUE,
-  COLORS.GREEN,
-  COLORS.YELLOW,
-];
+const BALLOON_COLORS = [COLORS.RED, COLORS.BLUE, COLORS.GREEN, COLORS.YELLOW];
 
 const ARENA_SIZE = 1.25;
 const BALLOON_SIZE = 0.1;
@@ -43,10 +38,8 @@ const DART_MATERIAL = new MeshStandardMaterial({
 
 const BALLOON_GEOMETRY = new SphereGeometry(BALLOON_SIZE, 32, 32);
 
-const audio = new Audio();
-
 class Balloon {
-  constructor({ color, position }) {
+  constructor({color, position}) {
     this.color = color;
     this.position = position;
     this.object = new Object3D();
@@ -82,7 +75,7 @@ class Balloon {
 }
 
 class Dart {
-  constructor({ position, rotation }) {
+  constructor({position, rotation}) {
     this.object = new Mesh(DART_GEOMETRY, DART_MATERIAL);
     this.object.position.copy(position);
     this.object.rotation.copy(rotation);
@@ -98,7 +91,7 @@ class Dart {
 }
 
 export class BalloonPop {
-  constructor(xr, { onScore, onPop }) {
+  constructor(xr, {onScore, onPop}) {
     this.xr = xr;
     this.onScore = onScore;
     this.onPop = onPop;
@@ -125,7 +118,7 @@ export class BalloonPop {
       const position = this.xr.camera.position.clone();
       const rotation = this.xr.camera.rotation.clone();
 
-      const dart = new Dart({ position, rotation });
+      const dart = new Dart({position, rotation});
       this.darts.push(dart);
       this.dartsGroup.add(dart.object);
       audio.play('throw');
@@ -143,15 +136,12 @@ export class BalloonPop {
       BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
 
     const x = MathUtils.randFloat(-ARENA_SIZE / 2, ARENA_SIZE / 2);
-    const y = MathUtils.randFloat(
-      -ARENA_SIZE / 8,
-      ARENA_SIZE / 8
-    );
+    const y = MathUtils.randFloat(-ARENA_SIZE / 8, ARENA_SIZE / 8);
     const z = MathUtils.randFloat(-ARENA_SIZE / 2, ARENA_SIZE / 2);
 
     const position = new Vector3(x, y, z);
     position.y += this.xr.camera.position.y;
-    const balloon = new Balloon({ color, position });
+    const balloon = new Balloon({color, position});
     this.balloons.push(balloon);
     this.balloonsGroup.add(balloon.object);
   }
