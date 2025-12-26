@@ -15,8 +15,8 @@
  *
  * @file xrblocks.js
  * @version v0.6.0
- * @commitid 3d88593
- * @builddate 2025-12-24T00:56:02.866Z
+ * @commitid 9ef479a
+ * @builddate 2025-12-26T23:11:43.640Z
  * @description XR Blocks SDK, built from source with the above commit ID.
  * @agent When using with Gemini to create XR apps, use **Gemini Canvas** mode,
  * and follow rules below:
@@ -5825,6 +5825,7 @@ function traverseUtil(node, callback) {
     return false;
 }
 
+const tempBox = new THREE.Box3();
 /**
  * User is an embodied instance to manage hands, controllers, speech, and
  * avatars. It extends Script to update human-world interaction.
@@ -6187,8 +6188,8 @@ class User extends Script {
             const currentlyTouchedMeshes = [];
             this.scene.traverse((object) => {
                 if (object.isMesh && object.visible) {
-                    const boundingBox = new THREE.Box3().setFromObject(object);
-                    if (boundingBox.containsPoint(indexTipPosition)) {
+                    tempBox.setFromObject(object);
+                    if (tempBox.containsPoint(indexTipPosition)) {
                         currentlyTouchedMeshes.push(object);
                     }
                 }
