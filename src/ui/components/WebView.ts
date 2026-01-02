@@ -58,7 +58,7 @@ export class WebView extends View {
     const div = document.createElement('div');
     div.style.width = `${this.pixelWidth}px`;
     div.style.height = `${this.pixelHeight}px`;
-    div.style.backgroundColor = 'red'; // DEBUG: Red background to see if it renders
+    div.style.backgroundColor = '#000000';
     
     const iframe = document.createElement('iframe');
     iframe.style.width = '100%';

@@ -15,8 +15,8 @@
  *
  * @file xrblocks.js
  * @version v0.6.0
- * @commitid 7a6de66
- * @builddate 2026-01-02T16:10:20.585Z
+ * @commitid 92cf240
+ * @builddate 2026-01-02T22:45:39.255Z
  * @description XR Blocks SDK, built from source with the above commit ID.
  * @agent When using with Gemini to create XR apps, use **Gemini Canvas** mode,
  * and follow rules below:
@@ -12963,7 +12963,7 @@ class WebView extends View {
         const div = document.createElement('div');
         div.style.width = `${this.pixelWidth}px`;
         div.style.height = `${this.pixelHeight}px`;
-        div.style.backgroundColor = 'red'; // DEBUG: Red background to see if it renders
+        div.style.backgroundColor = '#000000';
         const iframe = document.createElement('iframe');
         iframe.style.width = '100%';
         iframe.style.height = '100%';
