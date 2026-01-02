@@ -15,8 +15,8 @@
  *
  * @file xrblocks.js
  * @version v0.6.0
- * @commitid 62a92dd
- * @builddate 2026-01-02T15:19:52.961Z
+ * @commitid fbf6fad
+ * @builddate 2026-01-02T15:47:57.812Z
  * @description XR Blocks SDK, built from source with the above commit ID.
  * @agent When using with Gemini to create XR apps, use **Gemini Canvas** mode,
  * and follow rules below:
@@ -13035,6 +13035,7 @@ class WebView extends View {
                         view.cssObject.position.setFromMatrixPosition(view.occlusionMesh.matrixWorld);
                         view.cssObject.quaternion.setFromRotationMatrix(view.occlusionMesh.matrixWorld);
                         view.cssObject.scale.setFromMatrixScale(view.occlusionMesh.matrixWorld);
+                        view.cssObject.translateZ(0.002);
                         // Debug position occasionally
                         if (frameCount % 600 === 0) { // Every ~10 seconds
                             const pos = view.cssObject.position;

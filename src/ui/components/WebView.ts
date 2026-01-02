@@ -148,6 +148,7 @@ export class WebView extends View {
                  view.cssObject.position.setFromMatrixPosition(view.occlusionMesh.matrixWorld);
                  view.cssObject.quaternion.setFromRotationMatrix(view.occlusionMesh.matrixWorld);
                  view.cssObject.scale.setFromMatrixScale(view.occlusionMesh.matrixWorld);
+                 view.cssObject.translateZ(0.002);
 
                  // Debug position occasionally
                  if (frameCount % 600 === 0) { // Every ~10 seconds
