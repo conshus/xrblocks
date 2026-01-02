@@ -7,6 +7,8 @@ export type WebViewOptions = ViewOptions & {
 export declare class WebView extends View {
     private static cssRenderer;
     private static instances;
+    private static sceneRef;
+    private static cameraRef;
     url: string;
     width: number;
     height: number;
@@ -14,8 +16,9 @@ export declare class WebView extends View {
     occlusionMesh: THREE.Mesh;
     constructor(options: WebViewOptions);
     /**
-     * Called by the Grid/Layout system when dimensions change.
+     * CALL THIS once from your MainScript (index.html) to inject dependencies.
      */
+    static initialize(scene: THREE.Scene, camera: THREE.Camera): void;
     updateLayout(): void;
     private static ensureSystem;
 }

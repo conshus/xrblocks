@@ -15,8 +15,8 @@
  *
  * @file xrblocks.js
  * @version v0.6.0
- * @commitid ab6b2c0
- * @builddate 2026-01-02T01:32:30.792Z
+ * @commitid 9d5088c
+ * @builddate 2026-01-02T04:35:04.169Z
  * @description XR Blocks SDK, built from source with the above commit ID.
  * @agent When using with Gemini to create XR apps, use **Gemini Canvas** mode,
  * and follow rules below:
@@ -12930,18 +12930,20 @@ class ExitButton extends IconButton {
 class WebView extends View {
     static { this.cssRenderer = null; }
     static { this.instances = []; }
+    // Static storage for the scene/camera references
+    static { this.sceneRef = null; }
+    static { this.cameraRef = null; }
     constructor(options) {
-        // 3. Pass options to parent View
         super(options);
-        // 4. Extract and store properties (providing defaults)
         this.url = options.url;
         this.width = options.width ?? 1024;
         this.height = options.height ?? 768;
-        WebView.ensureSystem();
+        console.log(`WebView created with URL: ${this.url}, size: ${this.width}x${this.height}`);
         WebView.instances.push(this);
-        // --- Create CSS Object (The Website) ---
+        // Try to start system, but it might wait for 'initialize' to be called
+        WebView.ensureSystem();
+        // --- CSS Object ---
         const div = document.createElement('div');
-        // Set initial size
         div.style.width = `${this.width}px`;
         div.style.height = `${this.height}px`;
         div.style.backgroundColor = '#fff';
@@ -12954,7 +12956,7 @@ class WebView extends View {
         this.cssObject = new CSS3DObject(div);
         this.cssObject.scale.set(0.001, 0.001, 0.001);
         this.add(this.cssObject);
-        // --- Create Occlusion Mesh (The Invisible Mask) ---
+        // --- Occlusion Mesh ---
         const material = new THREE.MeshBasicMaterial({
             opacity: 0,
             color: new THREE.Color(0x000000),
@@ -12967,29 +12969,31 @@ class WebView extends View {
         this.add(this.occlusionMesh);
     }
     /**
-     * Called by the Grid/Layout system when dimensions change.
+     * CALL THIS once from your MainScript (index.html) to inject dependencies.
      */
+    static initialize(scene, camera) {
+        WebView.sceneRef = scene;
+        WebView.cameraRef = camera;
+        WebView.ensureSystem();
+    }
     updateLayout() {
-        // We reverse the 0.001 scale to get the pixel size
         const pixelWidth = this.width / 0.001;
         const pixelHeight = this.height / 0.001;
-        // 1. Update CSS Object size
         const div = this.cssObject.element;
         div.style.width = `${pixelWidth}px`;
         div.style.height = `${pixelHeight}px`;
-        // 2. Update Occlusion Mesh size
+        console.log(`WebView updateLayout: ${pixelWidth}x${pixelHeight}`);
         if (this.occlusionMesh) {
             this.occlusionMesh.geometry.dispose();
             this.occlusionMesh.geometry = new THREE.PlaneGeometry(pixelWidth, pixelHeight);
         }
-        // 3. Call base method
         super.updateLayout();
     }
-    // --- Static System Logic (Standard Setup) ---
     static ensureSystem() {
+        // We need the renderer AND the scene/camera to function fully
         if (WebView.cssRenderer)
             return;
-        console.log("WebView: Initializing CSS3D System...");
+        // Initialize Renderer
         WebView.cssRenderer = new CSS3DRenderer();
         WebView.cssRenderer.setSize(window.innerWidth, window.innerHeight);
         WebView.cssRenderer.domElement.style.position = 'absolute';
@@ -12999,14 +13003,15 @@ class WebView extends View {
         window.addEventListener('resize', () => {
             WebView.cssRenderer?.setSize(window.innerWidth, window.innerHeight);
         });
-        // Input Handling
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         window.addEventListener('pointermove', (event) => {
-            // if (!xb.core || !xb.core.camera) return;
+            // Use the injected cameraRef instead of xb.core.camera
+            if (!WebView.cameraRef)
+                return;
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            // raycaster.setFromCamera(mouse, xb.core.camera);
+            raycaster.setFromCamera(mouse, WebView.cameraRef);
             const meshes = WebView.instances.map(view => view.occlusionMesh);
             const intersects = raycaster.intersectObjects(meshes);
             if (intersects.length > 0) {
@@ -13016,11 +13021,11 @@ class WebView extends View {
                 WebView.cssRenderer.domElement.style.pointerEvents = 'none';
             }
         });
-        // Render Loop
         const tick = () => {
-            // if (WebView.cssRenderer && xb.core && xb.core.scene && xb.core.camera) {
-            //   WebView.cssRenderer.render(xb.core.scene, xb.core.camera);
-            // }
+            // Use injected refs
+            if (WebView.cssRenderer && WebView.sceneRef && WebView.cameraRef) {
+                WebView.cssRenderer.render(WebView.sceneRef, WebView.cameraRef);
+            }
             requestAnimationFrame(tick);
         };
         tick();

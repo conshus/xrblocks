@@ -1,20 +1,23 @@
 import * as THREE from 'three';
 import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
-// import * as xb from 'xrblocks';
 import { View } from '../core/View';
 import { ViewOptions } from '../core/ViewOptions';
 
-// 1. Define the Options Interface
+// REMOVE THIS IMPORT to break the cycle:
+// import * as xb from 'xrblocks'; 
+
 export type WebViewOptions = ViewOptions & {
   url: string;
-  // width and height are already optional in ViewOptions
 };
 
 export class WebView extends View {
   private static cssRenderer: CSS3DRenderer | null = null;
   private static instances: WebView[] = [];
 
-  // 2. Explicitly define properties for state
+  // Static storage for the scene/camera references
+  private static sceneRef: THREE.Scene | null = null;
+  private static cameraRef: THREE.Camera | null = null;
+
   public url: string;
   public width: number;
   public height: number;
@@ -23,20 +26,20 @@ export class WebView extends View {
   public occlusionMesh: THREE.Mesh; 
 
   constructor(options: WebViewOptions) {
-    // 3. Pass options to parent View
     super(options);
 
-    // 4. Extract and store properties (providing defaults)
     this.url = options.url;
     this.width = options.width ?? 1024;
     this.height = options.height ?? 768;
 
-    WebView.ensureSystem();
-    WebView.instances.push(this);
+    console.log(`WebView created with URL: ${this.url}, size: ${this.width}x${this.height}`);
 
-    // --- Create CSS Object (The Website) ---
+    WebView.instances.push(this);
+    // Try to start system, but it might wait for 'initialize' to be called
+    WebView.ensureSystem();
+
+    // --- CSS Object ---
     const div = document.createElement('div');
-    // Set initial size
     div.style.width = `${this.width}px`;
     div.style.height = `${this.height}px`;
     div.style.backgroundColor = '#fff';
@@ -52,7 +55,7 @@ export class WebView extends View {
     this.cssObject.scale.set(0.001, 0.001, 0.001); 
     this.add(this.cssObject);
 
-    // --- Create Occlusion Mesh (The Invisible Mask) ---
+    // --- Occlusion Mesh ---
     const material = new THREE.MeshBasicMaterial({
       opacity: 0,
       color: new THREE.Color(0x000000),
@@ -67,37 +70,36 @@ export class WebView extends View {
   }
 
   /**
-   * Called by the Grid/Layout system when dimensions change.
+   * CALL THIS once from your MainScript (index.html) to inject dependencies.
    */
+  public static initialize(scene: THREE.Scene, camera: THREE.Camera) {
+      WebView.sceneRef = scene;
+      WebView.cameraRef = camera;
+      WebView.ensureSystem();
+  }
+
   public updateLayout(): void {
-    // We reverse the 0.001 scale to get the pixel size
     const pixelWidth = this.width / 0.001;
     const pixelHeight = this.height / 0.001;
 
-    // 1. Update CSS Object size
     const div = this.cssObject.element;
     div.style.width = `${pixelWidth}px`;
     div.style.height = `${pixelHeight}px`;
 
-    // 2. Update Occlusion Mesh size
+    console.log(`WebView updateLayout: ${pixelWidth}x${pixelHeight}`);
+
     if (this.occlusionMesh) {
         this.occlusionMesh.geometry.dispose();
-        this.occlusionMesh.geometry = new THREE.PlaneGeometry(
-            pixelWidth, 
-            pixelHeight
-        );
+        this.occlusionMesh.geometry = new THREE.PlaneGeometry(pixelWidth, pixelHeight);
     }
-
-    // 3. Call base method
     super.updateLayout();
   }
 
-  // --- Static System Logic (Standard Setup) ---
   private static ensureSystem() {
+    // We need the renderer AND the scene/camera to function fully
     if (WebView.cssRenderer) return; 
 
-    console.log("WebView: Initializing CSS3D System...");
-
+    // Initialize Renderer
     WebView.cssRenderer = new CSS3DRenderer();
     WebView.cssRenderer.setSize(window.innerWidth, window.innerHeight);
     WebView.cssRenderer.domElement.style.position = 'absolute';
@@ -109,17 +111,17 @@ export class WebView extends View {
       WebView.cssRenderer?.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Input Handling
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
     window.addEventListener('pointermove', (event) => {
-      // if (!xb.core || !xb.core.camera) return;
+      // Use the injected cameraRef instead of xb.core.camera
+      if (!WebView.cameraRef) return;
 
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-      // raycaster.setFromCamera(mouse, xb.core.camera);
+      raycaster.setFromCamera(mouse, WebView.cameraRef);
       const meshes = WebView.instances.map(view => view.occlusionMesh);
       const intersects = raycaster.intersectObjects(meshes);
 
@@ -130,11 +132,11 @@ export class WebView extends View {
       }
     });
 
-    // Render Loop
     const tick = () => {
-      // if (WebView.cssRenderer && xb.core && xb.core.scene && xb.core.camera) {
-      //   WebView.cssRenderer.render(xb.core.scene, xb.core.camera);
-      // }
+      // Use injected refs
+      if (WebView.cssRenderer && WebView.sceneRef && WebView.cameraRef) {
+        WebView.cssRenderer.render(WebView.sceneRef, WebView.cameraRef);
+      }
       requestAnimationFrame(tick);
     };
     tick();
