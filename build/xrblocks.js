@@ -15,8 +15,8 @@
  *
  * @file xrblocks.js
  * @version v0.6.0
- * @commitid 9d5088c
- * @builddate 2026-01-02T04:35:04.169Z
+ * @commitid 51daf55
+ * @builddate 2026-01-02T05:30:43.597Z
  * @description XR Blocks SDK, built from source with the above commit ID.
  * @agent When using with Gemini to create XR apps, use **Gemini Canvas** mode,
  * and follow rules below:
@@ -12998,6 +12998,9 @@ class WebView extends View {
         WebView.cssRenderer.setSize(window.innerWidth, window.innerHeight);
         WebView.cssRenderer.domElement.style.position = 'absolute';
         WebView.cssRenderer.domElement.style.top = '0';
+        // Force the website layer to sit on top of the 3D canvas so it's not hidden
+        WebView.cssRenderer.domElement.style.zIndex = '1000';
+        // ---------------------
         WebView.cssRenderer.domElement.style.pointerEvents = 'none';
         document.body.appendChild(WebView.cssRenderer.domElement);
         window.addEventListener('resize', () => {

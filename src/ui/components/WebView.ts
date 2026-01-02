@@ -104,6 +104,11 @@ export class WebView extends View {
     WebView.cssRenderer.setSize(window.innerWidth, window.innerHeight);
     WebView.cssRenderer.domElement.style.position = 'absolute';
     WebView.cssRenderer.domElement.style.top = '0';
+
+    // Force the website layer to sit on top of the 3D canvas so it's not hidden
+    WebView.cssRenderer.domElement.style.zIndex = '1000'; 
+    // ---------------------
+
     WebView.cssRenderer.domElement.style.pointerEvents = 'none'; 
     document.body.appendChild(WebView.cssRenderer.domElement);
 
