@@ -98,17 +98,10 @@ export class WebView extends View {
     super.updateLayout();
   }
 
-  private static ensureSystem() {
-    if (WebView.cssRenderer) {
-        // console.log(`[WebView] System already running.`);
-        return;
-    }
-    if (!WebView.cameraRef) {
-        console.warn(`[WebView] ⚠️ ensureSystem called but Camera is missing! Waiting for initialize()...`);
-        return;
-    }
+private static ensureSystem() {
+    if (WebView.cssRenderer || !WebView.cameraRef) return; 
 
-    console.log("[WebView] 🟢 STARTING CSS3D RENDERER SYSTEM...");
+    console.log("WebView: Creating CSS3D Renderer (Overlay Mode)...");
 
     WebView.cssRenderer = new CSS3DRenderer();
     WebView.cssRenderer.setSize(window.innerWidth, window.innerHeight);
@@ -123,44 +116,59 @@ export class WebView extends View {
     style.pointerEvents = 'none'; 
     
     document.body.appendChild(WebView.cssRenderer.domElement);
-    console.log("[WebView] 🖥️ DOM Element appended to Body:", WebView.cssRenderer.domElement);
 
     window.addEventListener('resize', () => {
       WebView.cssRenderer?.setSize(window.innerWidth, window.innerHeight);
     });
 
-    let frameCount = 0;
-
     const tick = () => {
-       if (WebView.cssRenderer && WebView.cameraRef) {
-         
-         // Log the first few frames to ensure the loop is running
-         if (frameCount < 5) {
-             console.log(`[WebView] ⏱️ Tick Loop Running (Frame ${frameCount})`);
-         }
-         frameCount++;
+      if (WebView.cssRenderer && WebView.cameraRef) {
+        
+        WebView.instances.forEach(view => {
+          if (view.occlusionMesh && view.cssObject) {
+            view.occlusionMesh.updateMatrixWorld();
+            
+            // 1. POSITION: Always stick to the specific grid slot (Keep this!)
+            view.cssObject.position.setFromMatrixPosition(view.occlusionMesh.matrixWorld);
+            view.cssObject.scale.setFromMatrixScale(view.occlusionMesh.matrixWorld);
 
-         WebView.instances.forEach((view, index) => {
-             if (view.occlusionMesh && view.cssObject) {
-                 view.occlusionMesh.updateMatrixWorld();
-                 
-                 // Sync Position
-                 view.cssObject.position.setFromMatrixPosition(view.occlusionMesh.matrixWorld);
-                 view.cssObject.quaternion.setFromRotationMatrix(view.occlusionMesh.matrixWorld);
-                 view.cssObject.scale.setFromMatrixScale(view.occlusionMesh.matrixWorld);
-                 view.cssObject.translateZ(0.002);
+            // --- 2. ROTATION: The "Smart" Fix ---
+            // Instead of using the mesh's rotation (which might be twisted by the curve),
+            // we climb up to find the Main Panel and use its "Master" rotation.
+            
+            const targetRotation = new THREE.Quaternion();
+            let foundPanel = false;
+            
+            // Traverse up: WebView -> Row -> Grid -> SpatialPanel
+            let parent = view.parent;
+            while (parent) {
+                // Check if this parent looks like a SpatialPanel 
+                // (You can also check parent.constructor.name === 'SpatialPanel')
+                if (parent.constructor.name === 'SpatialPanel') {
+                    parent.updateMatrixWorld();
+                    targetRotation.setFromRotationMatrix(parent.matrixWorld);
+                    foundPanel = true;
+                    break;
+                }
+                parent = parent.parent;
+            }
 
-                 // Debug position occasionally
-                 if (frameCount % 600 === 0) { // Every ~10 seconds
-                    const pos = view.cssObject.position;
-                    console.log(`[WebView] 📍 View ${index} Position Sync: x=${pos.x.toFixed(2)}, y=${pos.y.toFixed(2)}, z=${pos.z.toFixed(2)}`);
-                 }
-             }
-         });
+            if (foundPanel) {
+                // CASE A: Use the Panel's flat rotation (Fixes the twist!)
+                view.cssObject.quaternion.copy(targetRotation);
+            } else {
+                // CASE B: Fallback to the old way if we can't find a panel
+                view.cssObject.quaternion.setFromRotationMatrix(view.occlusionMesh.matrixWorld);
+            }
 
-         WebView.cssRenderer.render(WebView.cssScene, WebView.cameraRef);
-       }
-       requestAnimationFrame(tick);
+            // 3. NUDGE: Still push it forward to clear the curved wall
+            view.cssObject.translateZ(0.08); 
+          }
+        });
+
+        WebView.cssRenderer.render(WebView.cssScene, WebView.cameraRef);
+      }
+      requestAnimationFrame(tick);
     };
     tick();
   }
