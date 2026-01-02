@@ -15,8 +15,8 @@
  *
  * @file xrblocks.js
  * @version v0.6.0
- * @commitid 0fd3d41
- * @builddate 2026-01-02T14:29:36.098Z
+ * @commitid 5d3ac6e
+ * @builddate 2026-01-02T14:54:00.339Z
  * @description XR Blocks SDK, built from source with the above commit ID.
  * @agent When using with Gemini to create XR apps, use **Gemini Canvas** mode,
  * and follow rules below:
@@ -13008,7 +13008,8 @@ class WebView extends View {
         style.position = 'absolute';
         style.top = '0';
         style.zIndex = '9999'; // Force visibility
-        style.pointerEvents = 'none';
+        style.pointerEvents = 'auto';
+        style.background = 'transparent';
         document.body.appendChild(WebView.cssRenderer.domElement);
         window.addEventListener('resize', () => {
             WebView.cssRenderer?.setSize(window.innerWidth, window.innerHeight);

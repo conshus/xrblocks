@@ -117,7 +117,8 @@ export class WebView extends View {
     style.position = 'absolute';
     style.top = '0';
     style.zIndex = '9999'; // Force visibility
-    style.pointerEvents = 'none'; 
+    style.pointerEvents = 'auto'; 
+    style.background = 'transparent';
     document.body.appendChild(WebView.cssRenderer.domElement);
 
     window.addEventListener('resize', () => {
