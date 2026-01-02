@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
-import * as xb from 'xrblocks';
+// import * as xb from 'xrblocks';
 import { View } from '../core/View';
 import { ViewOptions } from '../core/ViewOptions';
 
@@ -114,12 +114,12 @@ export class WebView extends View {
     const mouse = new THREE.Vector2();
 
     window.addEventListener('pointermove', (event) => {
-      if (!xb.core || !xb.core.camera) return;
+      // if (!xb.core || !xb.core.camera) return;
 
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-      raycaster.setFromCamera(mouse, xb.core.camera);
+      // raycaster.setFromCamera(mouse, xb.core.camera);
       const meshes = WebView.instances.map(view => view.occlusionMesh);
       const intersects = raycaster.intersectObjects(meshes);
 
@@ -132,9 +132,9 @@ export class WebView extends View {
 
     // Render Loop
     const tick = () => {
-      if (WebView.cssRenderer && xb.core && xb.core.scene && xb.core.camera) {
-        WebView.cssRenderer.render(xb.core.scene, xb.core.camera);
-      }
+      // if (WebView.cssRenderer && xb.core && xb.core.scene && xb.core.camera) {
+      //   WebView.cssRenderer.render(xb.core.scene, xb.core.camera);
+      // }
       requestAnimationFrame(tick);
     };
     tick();

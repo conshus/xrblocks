@@ -15,8 +15,8 @@
  *
  * @file xrblocks.js
  * @version v0.6.0
- * @commitid c8437cc
- * @builddate 2026-01-02T00:50:27.541Z
+ * @commitid ab6b2c0
+ * @builddate 2026-01-02T01:32:30.792Z
  * @description XR Blocks SDK, built from source with the above commit ID.
  * @agent When using with Gemini to create XR apps, use **Gemini Canvas** mode,
  * and follow rules below:
@@ -13003,11 +13003,10 @@ class WebView extends View {
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         window.addEventListener('pointermove', (event) => {
-            if (!core || !core.camera)
-                return;
+            // if (!xb.core || !xb.core.camera) return;
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, core.camera);
+            // raycaster.setFromCamera(mouse, xb.core.camera);
             const meshes = WebView.instances.map(view => view.occlusionMesh);
             const intersects = raycaster.intersectObjects(meshes);
             if (intersects.length > 0) {
@@ -13019,9 +13018,9 @@ class WebView extends View {
         });
         // Render Loop
         const tick = () => {
-            if (WebView.cssRenderer && core && core.scene && core.camera) {
-                WebView.cssRenderer.render(core.scene, core.camera);
-            }
+            // if (WebView.cssRenderer && xb.core && xb.core.scene && xb.core.camera) {
+            //   WebView.cssRenderer.render(xb.core.scene, xb.core.camera);
+            // }
             requestAnimationFrame(tick);
         };
         tick();

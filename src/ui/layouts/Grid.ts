@@ -135,7 +135,7 @@ export class Grid extends View {
     return ui;
   }
 
-  addURL(options: WebViewOptions): WebView {
+  addURL(options: WebViewOptions) {
     const webView = new WebView(options);
     this.add(webView);
     // You might want to call your layout logic here (e.g., this.reflow())
