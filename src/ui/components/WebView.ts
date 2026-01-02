@@ -3,8 +3,7 @@ import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRe
 import { View } from '../core/View';
 import { ViewOptions } from '../core/ViewOptions';
 
-// REMOVE THIS IMPORT to break the cycle:
-// import * as xb from 'xrblocks'; 
+// NO 'import * as xb' here! This prevents circular dependencies.
 
 export type WebViewOptions = ViewOptions & {
   url: string;
@@ -14,7 +13,7 @@ export class WebView extends View {
   private static cssRenderer: CSS3DRenderer | null = null;
   private static instances: WebView[] = [];
 
-  // Static storage for the scene/camera references
+  // Static storage for dependencies injected from MainScript
   private static sceneRef: THREE.Scene | null = null;
   private static cameraRef: THREE.Camera | null = null;
 
@@ -29,25 +28,38 @@ export class WebView extends View {
     super(options);
 
     this.url = options.url;
+    // Default to pixel units if not provided
     this.width = options.width ?? 1024;
     this.height = options.height ?? 768;
 
-    console.log(`WebView created with URL: ${this.url}, size: ${this.width}x${this.height}`);
-
     WebView.instances.push(this);
-    // Try to start system, but it might wait for 'initialize' to be called
+    
+    // Attempt to start system (will wait until initialize is called)
     WebView.ensureSystem();
 
-    // --- CSS Object ---
+    // --- 1. Create Occlusion Mesh ---
+    const material = new THREE.MeshBasicMaterial({
+      opacity: 0,
+      color: new THREE.Color(0x000000),
+      side: THREE.DoubleSide,
+      blending: THREE.NoBlending,
+    });
+    
+    // Geometry uses RAW units (e.g. 1024)
+    const geometry = new THREE.PlaneGeometry(this.width, this.height);
+    this.occlusionMesh = new THREE.Mesh(geometry, material);
+    
+    // Scale down: 1024 units -> 1.024 meters
+    this.occlusionMesh.scale.set(0.001, 0.001, 0.001);
+    
+    this.add(this.occlusionMesh);
+
+    // --- 2. Create CSS Object ---
     const div = document.createElement('div');
     div.style.width = `${this.width}px`;
     div.style.height = `${this.height}px`;
-    // div.style.backgroundColor = '#fff';
-
-    // --- DEBUG COLOR ---
-    div.style.backgroundColor = 'red'; // IF YOU SEE RED, IT WORKS!
-    // -------------------
-
+    div.style.backgroundColor = 'black'; // Debug background
+    
     const iframe = document.createElement('iframe');
     iframe.style.width = '100%';
     iframe.style.height = '100%';
@@ -56,25 +68,17 @@ export class WebView extends View {
     div.appendChild(iframe);
 
     this.cssObject = new CSS3DObject(div);
-    this.cssObject.scale.set(0.001, 0.001, 0.001); 
-    this.add(this.cssObject);
 
-    // --- Occlusion Mesh ---
-    const material = new THREE.MeshBasicMaterial({
-      opacity: 0,
-      color: new THREE.Color(0x000000),
-      side: THREE.DoubleSide,
-      blending: THREE.NoBlending,
-    });
+    // --- PIGGYBACK TRICK ---
+    // Attach CSS Object to the Occlusion Mesh so it enters the scene graph
+    this.occlusionMesh.add(this.cssObject);
     
-    const geometry = new THREE.PlaneGeometry(this.width, this.height);
-    this.occlusionMesh = new THREE.Mesh(geometry, material);
-    this.occlusionMesh.scale.set(0.001, 0.001, 0.001);
-    this.add(this.occlusionMesh);
+    // Keep scale at 1 (inherited from mesh)
+    this.cssObject.scale.set(1, 1, 1); 
   }
 
   /**
-   * CALL THIS once from your MainScript (index.html) to inject dependencies.
+   * Called from MainScript (index.html) to inject dependencies
    */
   public static initialize(scene: THREE.Scene, camera: THREE.Camera) {
       WebView.sceneRef = scene;
@@ -83,43 +87,47 @@ export class WebView extends View {
   }
 
   public updateLayout(): void {
-    const pixelWidth = this.width / 0.001;
-    const pixelHeight = this.height / 0.001;
+    // Layout Heuristic: Convert meters to pixels if needed
+    let pixelWidth = this.width;
+    let pixelHeight = this.height;
 
+    if (this.width < 10) {
+        pixelWidth = this.width / 0.001;
+        pixelHeight = this.height / 0.001;
+    }
+
+    // 1. Update DOM Size
     const div = this.cssObject.element;
     div.style.width = `${pixelWidth}px`;
     div.style.height = `${pixelHeight}px`;
 
-    console.log(`WebView updateLayout: ${pixelWidth}x${pixelHeight}`);
-
+    // 2. Update Mesh Geometry
     if (this.occlusionMesh) {
         this.occlusionMesh.geometry.dispose();
         this.occlusionMesh.geometry = new THREE.PlaneGeometry(pixelWidth, pixelHeight);
     }
+
     super.updateLayout();
   }
 
   private static ensureSystem() {
-    // We need the renderer AND the scene/camera to function fully
-    if (WebView.cssRenderer) return; 
+    // Only start if we have the renderer AND the dependencies
+    if (WebView.cssRenderer || !WebView.sceneRef || !WebView.cameraRef) return; 
 
     console.log("WebView: Initializing CSS3D System...");
 
-    // Initialize Renderer
     WebView.cssRenderer = new CSS3DRenderer();
     WebView.cssRenderer.setSize(window.innerWidth, window.innerHeight);
-    WebView.cssRenderer.domElement.style.position = 'absolute';
-    WebView.cssRenderer.domElement.style.top = '0';
+    
+    const style = WebView.cssRenderer.domElement.style;
+    style.position = 'absolute';
+    style.top = '0';
+    style.left = '0';
+    style.width = '100%';
+    style.height = '100%';
+    style.zIndex = '9999'; // FORCE FRONT
+    style.pointerEvents = 'none'; 
 
-    // Force the website layer to sit on top of the 3D canvas so it's not hidden
-    WebView.cssRenderer.domElement.style.zIndex = '1000'; 
-    // ---------------------
-
-    // 2. Add ID so you can find it in Elements panel easily
-    WebView.cssRenderer.domElement.id = 'css-renderer-debug';
-    // ----------------------
-
-    WebView.cssRenderer.domElement.style.pointerEvents = 'auto'; 
     document.body.appendChild(WebView.cssRenderer.domElement);
 
     window.addEventListener('resize', () => {
@@ -130,10 +138,8 @@ export class WebView extends View {
     const mouse = new THREE.Vector2();
 
     window.addEventListener('pointermove', (event) => {
-      // Use the injected cameraRef instead of xb.core.camera
-      if (!WebView.cameraRef) return;
-
-      console.log(`WebView: Pointer moved to (${event.clientX}, ${event.clientY})`);
+      // USE STATIC REFS, NOT XB.CORE
+      if (!WebView.cameraRef || !WebView.cssRenderer) return;
 
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -143,18 +149,18 @@ export class WebView extends View {
       const intersects = raycaster.intersectObjects(meshes);
 
       if (intersects.length > 0) {
-        WebView.cssRenderer!.domElement.style.pointerEvents = 'auto';
+        WebView.cssRenderer.domElement.style.pointerEvents = 'auto';
       } else {
-        WebView.cssRenderer!.domElement.style.pointerEvents = 'none';
+        WebView.cssRenderer.domElement.style.pointerEvents = 'none';
       }
     });
 
     const tick = () => {
-      // Use injected refs
-      if (WebView.cssRenderer && WebView.sceneRef && WebView.cameraRef) {
-        WebView.cssRenderer.render(WebView.sceneRef, WebView.cameraRef);
-      }
-      requestAnimationFrame(tick);
+       // USE STATIC REFS
+       if (WebView.cssRenderer && WebView.sceneRef && WebView.cameraRef) {
+         WebView.cssRenderer.render(WebView.sceneRef, WebView.cameraRef);
+       }
+       requestAnimationFrame(tick);
     };
     tick();
   }

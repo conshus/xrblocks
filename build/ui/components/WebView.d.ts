@@ -16,7 +16,7 @@ export declare class WebView extends View {
     occlusionMesh: THREE.Mesh;
     constructor(options: WebViewOptions);
     /**
-     * CALL THIS once from your MainScript (index.html) to inject dependencies.
+     * Called from MainScript (index.html) to inject dependencies
      */
     static initialize(scene: THREE.Scene, camera: THREE.Camera): void;
     updateLayout(): void;
