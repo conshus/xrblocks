@@ -11,6 +11,8 @@ import type {PanelOptions} from '../core/PanelOptions';
 import {View} from '../core/View';
 import {ViewOptions} from '../core/ViewOptions';
 
+import { WebView, WebViewOptions } from '../components/WebView';
+
 import type {Col, ColOptions} from './Col';
 import type {Orbiter, OrbiterOptions} from './Orbiter';
 import type {Row, RowOptions} from './Row';
@@ -131,6 +133,13 @@ export class Grid extends View {
     const ui = new ExitButton(options);
     this.add(ui);
     return ui;
+  }
+
+  addURL(options: WebViewOptions): WebView {
+    const webView = new WebView(options);
+    this.add(webView);
+    // You might want to call your layout logic here (e.g., this.reflow())
+    return webView;
   }
 
   /**

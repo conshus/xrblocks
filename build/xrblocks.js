@@ -15,8 +15,8 @@
  *
  * @file xrblocks.js
  * @version v0.6.0
- * @commitid 65345c3
- * @builddate 2026-01-01T02:41:30.460Z
+ * @commitid c8437cc
+ * @builddate 2026-01-02T00:50:27.541Z
  * @description XR Blocks SDK, built from source with the above commit ID.
  * @agent When using with Gemini to create XR apps, use **Gemini Canvas** mode,
  * and follow rules below:
@@ -45,6 +45,7 @@ import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFa
 import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
 import { XREstimatedLight } from 'three/addons/webxr/XREstimatedLight.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { CSS3DObject, CSS3DRenderer } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
@@ -12926,6 +12927,107 @@ class ExitButton extends IconButton {
     }
 }
 
+class WebView extends View {
+    static { this.cssRenderer = null; }
+    static { this.instances = []; }
+    constructor(options) {
+        // 3. Pass options to parent View
+        super(options);
+        // 4. Extract and store properties (providing defaults)
+        this.url = options.url;
+        this.width = options.width ?? 1024;
+        this.height = options.height ?? 768;
+        WebView.ensureSystem();
+        WebView.instances.push(this);
+        // --- Create CSS Object (The Website) ---
+        const div = document.createElement('div');
+        // Set initial size
+        div.style.width = `${this.width}px`;
+        div.style.height = `${this.height}px`;
+        div.style.backgroundColor = '#fff';
+        const iframe = document.createElement('iframe');
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = '0px';
+        iframe.src = this.url;
+        div.appendChild(iframe);
+        this.cssObject = new CSS3DObject(div);
+        this.cssObject.scale.set(0.001, 0.001, 0.001);
+        this.add(this.cssObject);
+        // --- Create Occlusion Mesh (The Invisible Mask) ---
+        const material = new THREE.MeshBasicMaterial({
+            opacity: 0,
+            color: new THREE.Color(0x000000),
+            side: THREE.DoubleSide,
+            blending: THREE.NoBlending,
+        });
+        const geometry = new THREE.PlaneGeometry(this.width, this.height);
+        this.occlusionMesh = new THREE.Mesh(geometry, material);
+        this.occlusionMesh.scale.set(0.001, 0.001, 0.001);
+        this.add(this.occlusionMesh);
+    }
+    /**
+     * Called by the Grid/Layout system when dimensions change.
+     */
+    updateLayout() {
+        // We reverse the 0.001 scale to get the pixel size
+        const pixelWidth = this.width / 0.001;
+        const pixelHeight = this.height / 0.001;
+        // 1. Update CSS Object size
+        const div = this.cssObject.element;
+        div.style.width = `${pixelWidth}px`;
+        div.style.height = `${pixelHeight}px`;
+        // 2. Update Occlusion Mesh size
+        if (this.occlusionMesh) {
+            this.occlusionMesh.geometry.dispose();
+            this.occlusionMesh.geometry = new THREE.PlaneGeometry(pixelWidth, pixelHeight);
+        }
+        // 3. Call base method
+        super.updateLayout();
+    }
+    // --- Static System Logic (Standard Setup) ---
+    static ensureSystem() {
+        if (WebView.cssRenderer)
+            return;
+        console.log("WebView: Initializing CSS3D System...");
+        WebView.cssRenderer = new CSS3DRenderer();
+        WebView.cssRenderer.setSize(window.innerWidth, window.innerHeight);
+        WebView.cssRenderer.domElement.style.position = 'absolute';
+        WebView.cssRenderer.domElement.style.top = '0';
+        WebView.cssRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(WebView.cssRenderer.domElement);
+        window.addEventListener('resize', () => {
+            WebView.cssRenderer?.setSize(window.innerWidth, window.innerHeight);
+        });
+        // Input Handling
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        window.addEventListener('pointermove', (event) => {
+            if (!core || !core.camera)
+                return;
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, core.camera);
+            const meshes = WebView.instances.map(view => view.occlusionMesh);
+            const intersects = raycaster.intersectObjects(meshes);
+            if (intersects.length > 0) {
+                WebView.cssRenderer.domElement.style.pointerEvents = 'auto';
+            }
+            else {
+                WebView.cssRenderer.domElement.style.pointerEvents = 'none';
+            }
+        });
+        // Render Loop
+        const tick = () => {
+            if (WebView.cssRenderer && core && core.scene && core.camera) {
+                WebView.cssRenderer.render(core.scene, core.camera);
+            }
+            requestAnimationFrame(tick);
+        };
+        tick();
+    }
+}
+
 class Grid extends View {
     constructor() {
         super(...arguments);
@@ -13011,6 +13113,12 @@ class Grid extends View {
         const ui = new ExitButton(options);
         this.add(ui);
         return ui;
+    }
+    addURL(options) {
+        const webView = new WebView(options);
+        this.add(webView);
+        // You might want to call your layout logic here (e.g., this.reflow())
+        return webView;
     }
     /**
      * Adds a panel to the grid.

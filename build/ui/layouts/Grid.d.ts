@@ -10,6 +10,7 @@ import type { Panel } from '../core/Panel';
 import type { PanelOptions } from '../core/PanelOptions';
 import { View } from '../core/View';
 import { ViewOptions } from '../core/ViewOptions';
+import { WebView, WebViewOptions } from '../components/WebView';
 import type { Col, ColOptions } from './Col';
 import type { Orbiter, OrbiterOptions } from './Orbiter';
 import type { Row, RowOptions } from './Row';
@@ -68,6 +69,7 @@ export declare class Grid extends View {
     addLabel(options: object): LabelView;
     addOrbiter(options?: OrbiterOptions): Orbiter;
     addExitButton(options?: IconButtonOptions): ExitButton;
+    addURL(options: WebViewOptions): WebView;
     /**
      * Adds a panel to the grid.
      * @param options - The options for the panel.
