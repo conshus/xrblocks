@@ -42,7 +42,11 @@ export class WebView extends View {
     const div = document.createElement('div');
     div.style.width = `${this.width}px`;
     div.style.height = `${this.height}px`;
-    div.style.backgroundColor = '#fff';
+    // div.style.backgroundColor = '#fff';
+
+    // --- DEBUG COLOR ---
+    div.style.backgroundColor = 'red'; // IF YOU SEE RED, IT WORKS!
+    // -------------------
 
     const iframe = document.createElement('iframe');
     iframe.style.width = '100%';
@@ -99,6 +103,8 @@ export class WebView extends View {
     // We need the renderer AND the scene/camera to function fully
     if (WebView.cssRenderer) return; 
 
+    console.log("WebView: Initializing CSS3D System...");
+
     // Initialize Renderer
     WebView.cssRenderer = new CSS3DRenderer();
     WebView.cssRenderer.setSize(window.innerWidth, window.innerHeight);
@@ -109,7 +115,11 @@ export class WebView extends View {
     WebView.cssRenderer.domElement.style.zIndex = '1000'; 
     // ---------------------
 
-    WebView.cssRenderer.domElement.style.pointerEvents = 'none'; 
+    // 2. Add ID so you can find it in Elements panel easily
+    WebView.cssRenderer.domElement.id = 'css-renderer-debug';
+    // ----------------------
+
+    WebView.cssRenderer.domElement.style.pointerEvents = 'auto'; 
     document.body.appendChild(WebView.cssRenderer.domElement);
 
     window.addEventListener('resize', () => {
@@ -122,6 +132,8 @@ export class WebView extends View {
     window.addEventListener('pointermove', (event) => {
       // Use the injected cameraRef instead of xb.core.camera
       if (!WebView.cameraRef) return;
+
+      console.log(`WebView: Pointer moved to (${event.clientX}, ${event.clientY})`);
 
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;

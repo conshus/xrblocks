@@ -15,8 +15,8 @@
  *
  * @file xrblocks.js
  * @version v0.6.0
- * @commitid 51daf55
- * @builddate 2026-01-02T05:30:43.597Z
+ * @commitid 25a88b7
+ * @builddate 2026-01-02T13:37:42.981Z
  * @description XR Blocks SDK, built from source with the above commit ID.
  * @agent When using with Gemini to create XR apps, use **Gemini Canvas** mode,
  * and follow rules below:
@@ -12946,7 +12946,10 @@ class WebView extends View {
         const div = document.createElement('div');
         div.style.width = `${this.width}px`;
         div.style.height = `${this.height}px`;
-        div.style.backgroundColor = '#fff';
+        // div.style.backgroundColor = '#fff';
+        // --- DEBUG COLOR ---
+        div.style.backgroundColor = 'red'; // IF YOU SEE RED, IT WORKS!
+        // -------------------
         const iframe = document.createElement('iframe');
         iframe.style.width = '100%';
         iframe.style.height = '100%';
@@ -12993,6 +12996,7 @@ class WebView extends View {
         // We need the renderer AND the scene/camera to function fully
         if (WebView.cssRenderer)
             return;
+        console.log("WebView: Initializing CSS3D System...");
         // Initialize Renderer
         WebView.cssRenderer = new CSS3DRenderer();
         WebView.cssRenderer.setSize(window.innerWidth, window.innerHeight);
@@ -13001,7 +13005,10 @@ class WebView extends View {
         // Force the website layer to sit on top of the 3D canvas so it's not hidden
         WebView.cssRenderer.domElement.style.zIndex = '1000';
         // ---------------------
-        WebView.cssRenderer.domElement.style.pointerEvents = 'none';
+        // 2. Add ID so you can find it in Elements panel easily
+        WebView.cssRenderer.domElement.id = 'css-renderer-debug';
+        // ----------------------
+        WebView.cssRenderer.domElement.style.pointerEvents = 'auto';
         document.body.appendChild(WebView.cssRenderer.domElement);
         window.addEventListener('resize', () => {
             WebView.cssRenderer?.setSize(window.innerWidth, window.innerHeight);
@@ -13012,6 +13019,7 @@ class WebView extends View {
             // Use the injected cameraRef instead of xb.core.camera
             if (!WebView.cameraRef)
                 return;
+            console.log(`WebView: Pointer moved to (${event.clientX}, ${event.clientY})`);
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, WebView.cameraRef);

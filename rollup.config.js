@@ -64,6 +64,7 @@ ${apache2License}
 const externalPackages = [
   'three',
   /three\/addons\//,
+  /three\/examples\//,
   'troika-three-text',
   '@google/genai',
   'openai',
