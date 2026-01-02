@@ -3,18 +3,17 @@ import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRe
 import { View } from '../core/View';
 import { ViewOptions } from '../core/ViewOptions';
 
-// 1. Dependencies are injected via initialize(), NO import * as xb here!
-
 export type WebViewOptions = ViewOptions & {
   url: string;
 };
 
 export class WebView extends View {
   private static cssRenderer: CSS3DRenderer | null = null;
+  // 1. Dedicated Scene just for HTML (Bypasses XR Blocks nesting)
+  private static cssScene: THREE.Scene = new THREE.Scene(); 
   private static instances: WebView[] = [];
   
-  // Static refs to avoid circular dependencies
-  private static sceneRef: THREE.Scene | null = null;
+  // We only need the camera now
   private static cameraRef: THREE.Camera | null = null;
 
   public url: string;
@@ -25,29 +24,24 @@ export class WebView extends View {
   public occlusionMesh: THREE.Mesh; 
 
   constructor(options: WebViewOptions) {
-    // --- 2. LOGIC FIX: Handle Meters vs Pixels ---
+    // --- 2. Handle Units (Meters vs Pixels) ---
     const inputWidth = options.width ?? 1024;
     const inputHeight = options.height ?? 768;
-    
-    // If width is tiny (<10), user means Meters. If huge (>10), user means Pixels.
     const isPixels = inputWidth > 10;
     
-    // Calculate physical size for the Parent View (Meters)
     const physicalWidth = isPixels ? inputWidth * 0.001 : inputWidth;
     const physicalHeight = isPixels ? inputHeight * 0.001 : inputHeight;
 
-    // Pass PHYSICAL size to super() so layout engine is happy
     super({ ...options, width: physicalWidth, height: physicalHeight });
 
-    // Store PIXEL size for internal Rendering (Resolution)
     this.url = options.url;
     this.pixelWidth = isPixels ? inputWidth : physicalWidth / 0.001;
     this.pixelHeight = isPixels ? inputHeight : physicalHeight / 0.001;
 
     WebView.instances.push(this);
-    WebView.ensureSystem(); // Will wait for initialize()
+    WebView.ensureSystem();
 
-    // --- 3. RENDERING SETUP ---
+    // --- 3. Create "Hole" Mesh (Standard WebGL) ---
     const material = new THREE.MeshBasicMaterial({
       opacity: 0,
       color: new THREE.Color(0x000000),
@@ -55,19 +49,16 @@ export class WebView extends View {
       blending: THREE.NoBlending,
     });
     
-    // Geometry = Pixels (1000)
     const geometry = new THREE.PlaneGeometry(this.pixelWidth, this.pixelHeight);
     this.occlusionMesh = new THREE.Mesh(geometry, material);
-    
-    // Scale = 0.001 (1000 * 0.001 = 1 Meter)
     this.occlusionMesh.scale.set(0.001, 0.001, 0.001);
     this.add(this.occlusionMesh);
 
-    // CSS Object (DOM)
+    // --- 4. Create CSS Object (The HTML) ---
     const div = document.createElement('div');
     div.style.width = `${this.pixelWidth}px`;
     div.style.height = `${this.pixelHeight}px`;
-    div.style.backgroundColor = 'black';
+    div.style.backgroundColor = '#000'; 
     
     const iframe = document.createElement('iframe');
     iframe.style.width = '100%';
@@ -77,28 +68,27 @@ export class WebView extends View {
     div.appendChild(iframe);
 
     this.cssObject = new CSS3DObject(div);
-
-    // Piggyback: Add to Mesh, reset scale to 1 (inherit 0.001 from mesh)
-    this.occlusionMesh.add(this.cssObject);
-    this.cssObject.scale.set(1, 1, 1); 
+    
+    // IMPORTANT: Add to our private overlay scene!
+    WebView.cssScene.add(this.cssObject);
   }
 
-  // --- 4. INJECTION METHOD ---
-  public static initialize(scene: THREE.Scene, camera: THREE.Camera) {
-      WebView.sceneRef = scene;
+  // Simplified Initialize: Just needs Camera
+  public static initialize(camera: THREE.Camera) {
       WebView.cameraRef = camera;
       WebView.ensureSystem();
   }
 
   public updateLayout(): void {
-    // Recalculate pixels in case Layout engine changed dimensions in Meters
     this.pixelWidth = this.width / 0.001;
     this.pixelHeight = this.height / 0.001;
 
+    // Update DOM
     const div = this.cssObject.element;
     div.style.width = `${this.pixelWidth}px`;
     div.style.height = `${this.pixelHeight}px`;
 
+    // Update Hole
     if (this.occlusionMesh) {
         this.occlusionMesh.geometry.dispose();
         this.occlusionMesh.geometry = new THREE.PlaneGeometry(this.pixelWidth, this.pixelHeight);
@@ -107,48 +97,47 @@ export class WebView extends View {
   }
 
   private static ensureSystem() {
-    if (WebView.cssRenderer || !WebView.sceneRef || !WebView.cameraRef) return; 
+    // Guard: Need Camera + Renderer must not exist yet
+    if (WebView.cssRenderer || !WebView.cameraRef) return; 
 
-    console.log("WebView: Initializing CSS3D System...");
+    console.log("WebView: Creating CSS3D Renderer (Overlay Mode)...");
 
     WebView.cssRenderer = new CSS3DRenderer();
     WebView.cssRenderer.setSize(window.innerWidth, window.innerHeight);
+    
     const style = WebView.cssRenderer.domElement.style;
     style.position = 'absolute';
     style.top = '0';
-    style.zIndex = '9999'; // Force visibility
-    style.pointerEvents = 'auto'; 
-    style.background = 'transparent';
+    style.left = '0';
+    style.width = '100%';
+    style.height = '100%';
+    style.zIndex = '9999'; 
+    style.pointerEvents = 'none'; 
+    
     document.body.appendChild(WebView.cssRenderer.domElement);
 
     window.addEventListener('resize', () => {
       WebView.cssRenderer?.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Raycaster Logic
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    window.addEventListener('pointermove', (event) => {
-      if (!WebView.cameraRef || !WebView.cssRenderer) return;
-
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-      raycaster.setFromCamera(mouse, WebView.cameraRef);
-      const meshes = WebView.instances.map(view => view.occlusionMesh);
-      const intersects = raycaster.intersectObjects(meshes);
-
-      if (intersects.length > 0) {
-        WebView.cssRenderer.domElement.style.pointerEvents = 'auto';
-      } else {
-        WebView.cssRenderer.domElement.style.pointerEvents = 'none';
-      }
-    });
-
     const tick = () => {
-       if (WebView.cssRenderer && WebView.sceneRef && WebView.cameraRef) {
-         WebView.cssRenderer.render(WebView.sceneRef, WebView.cameraRef);
+       if (WebView.cssRenderer && WebView.cameraRef) {
+         
+         // --- SYNC LOOP: Teleport HTML to match the 3D Hole ---
+         WebView.instances.forEach(view => {
+             if (view.occlusionMesh && view.cssObject) {
+                 // 1. Calculate where the "Hole" is in world space
+                 view.occlusionMesh.updateMatrixWorld();
+                 
+                 // 2. Copy position/rotation/scale to the HTML object
+                 view.cssObject.position.setFromMatrixPosition(view.occlusionMesh.matrixWorld);
+                 view.cssObject.quaternion.setFromRotationMatrix(view.occlusionMesh.matrixWorld);
+                 view.cssObject.scale.setFromMatrixScale(view.occlusionMesh.matrixWorld);
+             }
+         });
+
+         // Render the Overlay Scene
+         WebView.cssRenderer.render(WebView.cssScene, WebView.cameraRef);
        }
        requestAnimationFrame(tick);
     };

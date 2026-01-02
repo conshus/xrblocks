@@ -6,8 +6,8 @@ export type WebViewOptions = ViewOptions & {
 };
 export declare class WebView extends View {
     private static cssRenderer;
+    private static cssScene;
     private static instances;
-    private static sceneRef;
     private static cameraRef;
     url: string;
     pixelWidth: number;
@@ -15,7 +15,7 @@ export declare class WebView extends View {
     private cssObject;
     occlusionMesh: THREE.Mesh;
     constructor(options: WebViewOptions);
-    static initialize(scene: THREE.Scene, camera: THREE.Camera): void;
+    static initialize(camera: THREE.Camera): void;
     updateLayout(): void;
     private static ensureSystem;
 }
