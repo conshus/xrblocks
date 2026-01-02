@@ -10,14 +10,11 @@ export declare class WebView extends View {
     private static sceneRef;
     private static cameraRef;
     url: string;
-    width: number;
-    height: number;
+    pixelWidth: number;
+    pixelHeight: number;
     private cssObject;
     occlusionMesh: THREE.Mesh;
     constructor(options: WebViewOptions);
-    /**
-     * Called from MainScript (index.html) to inject dependencies
-     */
     static initialize(scene: THREE.Scene, camera: THREE.Camera): void;
     updateLayout(): void;
     private static ensureSystem;
