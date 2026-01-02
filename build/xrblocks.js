@@ -15,8 +15,8 @@
  *
  * @file xrblocks.js
  * @version v0.6.0
- * @commitid e8bf708
- * @builddate 2026-01-02T15:13:05.443Z
+ * @commitid 62a92dd
+ * @builddate 2026-01-02T15:19:52.961Z
  * @description XR Blocks SDK, built from source with the above commit ID.
  * @agent When using with Gemini to create XR apps, use **Gemini Canvas** mode,
  * and follow rules below:
@@ -12929,13 +12929,12 @@ class ExitButton extends IconButton {
 
 class WebView extends View {
     static { this.cssRenderer = null; }
-    // 1. Dedicated Scene just for HTML (Bypasses XR Blocks nesting)
     static { this.cssScene = new THREE.Scene(); }
     static { this.instances = []; }
-    // We only need the camera now
     static { this.cameraRef = null; }
     constructor(options) {
-        // --- 2. Handle Units (Meters vs Pixels) ---
+        console.log(`[WebView] 🏗️ Constructor called for URL: ${options.url}`);
+        // --- Units Logic ---
         const inputWidth = options.width ?? 1024;
         const inputHeight = options.height ?? 768;
         const isPixels = inputWidth > 10;
@@ -12945,9 +12944,10 @@ class WebView extends View {
         this.url = options.url;
         this.pixelWidth = isPixels ? inputWidth : physicalWidth / 0.001;
         this.pixelHeight = isPixels ? inputHeight : physicalHeight / 0.001;
+        console.log(`[WebView] 📏 Size calculated - Physical: ${physicalWidth}m x ${physicalHeight}m | Pixels: ${this.pixelWidth}px x ${this.pixelHeight}px`);
         WebView.instances.push(this);
         WebView.ensureSystem();
-        // --- 3. Create "Hole" Mesh (Standard WebGL) ---
+        // --- Occlusion Mesh ---
         const material = new THREE.MeshBasicMaterial({
             opacity: 0,
             color: new THREE.Color(0x000000),
@@ -12958,34 +12958,37 @@ class WebView extends View {
         this.occlusionMesh = new THREE.Mesh(geometry, material);
         this.occlusionMesh.scale.set(0.001, 0.001, 0.001);
         this.add(this.occlusionMesh);
-        // --- 4. Create CSS Object (The HTML) ---
+        console.log(`[WebView] 🛡️ Occlusion Mesh added to Scene Graph`);
+        // --- CSS Object ---
         const div = document.createElement('div');
         div.style.width = `${this.pixelWidth}px`;
         div.style.height = `${this.pixelHeight}px`;
-        div.style.backgroundColor = '#000';
+        div.style.backgroundColor = 'red'; // DEBUG: Red background to see if it renders
         const iframe = document.createElement('iframe');
         iframe.style.width = '100%';
         iframe.style.height = '100%';
         iframe.style.border = '0px';
         iframe.src = this.url;
+        iframe.onload = () => console.log(`[WebView] 📡 Iframe Loaded: ${this.url}`);
+        iframe.onerror = (e) => console.error(`[WebView] ❌ Iframe Error:`, e);
         div.appendChild(iframe);
         this.cssObject = new CSS3DObject(div);
-        // IMPORTANT: Add to our private overlay scene!
+        // Add to private overlay scene
         WebView.cssScene.add(this.cssObject);
+        console.log(`[WebView] 🌍 CSS Object added to Overlay Scene`);
     }
-    // Simplified Initialize: Just needs Camera
     static initialize(camera) {
+        console.log(`[WebView] 🚀 Initialize called with Camera:`, camera);
         WebView.cameraRef = camera;
         WebView.ensureSystem();
     }
     updateLayout() {
+        // console.log(`[WebView] 🔄 updateLayout called`); // Commented out to reduce noise
         this.pixelWidth = this.width / 0.001;
         this.pixelHeight = this.height / 0.001;
-        // Update DOM
         const div = this.cssObject.element;
         div.style.width = `${this.pixelWidth}px`;
         div.style.height = `${this.pixelHeight}px`;
-        // Update Hole
         if (this.occlusionMesh) {
             this.occlusionMesh.geometry.dispose();
             this.occlusionMesh.geometry = new THREE.PlaneGeometry(this.pixelWidth, this.pixelHeight);
@@ -12993,10 +12996,15 @@ class WebView extends View {
         super.updateLayout();
     }
     static ensureSystem() {
-        // Guard: Need Camera + Renderer must not exist yet
-        if (WebView.cssRenderer || !WebView.cameraRef)
+        if (WebView.cssRenderer) {
+            // console.log(`[WebView] System already running.`);
             return;
-        console.log("WebView: Creating CSS3D Renderer (Overlay Mode)...");
+        }
+        if (!WebView.cameraRef) {
+            console.warn(`[WebView] ⚠️ ensureSystem called but Camera is missing! Waiting for initialize()...`);
+            return;
+        }
+        console.log("[WebView] 🟢 STARTING CSS3D RENDERER SYSTEM...");
         WebView.cssRenderer = new CSS3DRenderer();
         WebView.cssRenderer.setSize(window.innerWidth, window.innerHeight);
         const style = WebView.cssRenderer.domElement.style;
@@ -13008,23 +13016,32 @@ class WebView extends View {
         style.zIndex = '9999';
         style.pointerEvents = 'none';
         document.body.appendChild(WebView.cssRenderer.domElement);
+        console.log("[WebView] 🖥️ DOM Element appended to Body:", WebView.cssRenderer.domElement);
         window.addEventListener('resize', () => {
             WebView.cssRenderer?.setSize(window.innerWidth, window.innerHeight);
         });
+        let frameCount = 0;
         const tick = () => {
             if (WebView.cssRenderer && WebView.cameraRef) {
-                // --- SYNC LOOP: Teleport HTML to match the 3D Hole ---
-                WebView.instances.forEach(view => {
+                // Log the first few frames to ensure the loop is running
+                if (frameCount < 5) {
+                    console.log(`[WebView] ⏱️ Tick Loop Running (Frame ${frameCount})`);
+                }
+                frameCount++;
+                WebView.instances.forEach((view, index) => {
                     if (view.occlusionMesh && view.cssObject) {
-                        // 1. Calculate where the "Hole" is in world space
                         view.occlusionMesh.updateMatrixWorld();
-                        // 2. Copy position/rotation/scale to the HTML object
+                        // Sync Position
                         view.cssObject.position.setFromMatrixPosition(view.occlusionMesh.matrixWorld);
                         view.cssObject.quaternion.setFromRotationMatrix(view.occlusionMesh.matrixWorld);
                         view.cssObject.scale.setFromMatrixScale(view.occlusionMesh.matrixWorld);
+                        // Debug position occasionally
+                        if (frameCount % 600 === 0) { // Every ~10 seconds
+                            const pos = view.cssObject.position;
+                            console.log(`[WebView] 📍 View ${index} Position Sync: x=${pos.x.toFixed(2)}, y=${pos.y.toFixed(2)}, z=${pos.z.toFixed(2)}`);
+                        }
                     }
                 });
-                // Render the Overlay Scene
                 WebView.cssRenderer.render(WebView.cssScene, WebView.cameraRef);
             }
             requestAnimationFrame(tick);
