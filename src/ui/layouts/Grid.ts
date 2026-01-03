@@ -6,6 +6,7 @@ import {LabelView} from '../components/LabelView';
 import {TextButton, TextButtonOptions} from '../components/TextButton';
 import {TextView, TextViewOptions} from '../components/TextView';
 import {VideoView, VideoViewOptions} from '../components/VideoView';
+import {WebView, WebViewOptions} from '../components/WebView';
 import type {Panel} from '../core/Panel';
 import type {PanelOptions} from '../core/PanelOptions';
 import {View} from '../core/View';
@@ -131,6 +132,12 @@ export class Grid extends View {
     const ui = new ExitButton(options);
     this.add(ui);
     return ui;
+  }
+
+  addURL(options: WebViewOptions) {
+    const webView = new WebView(options);
+    this.add(webView);
+    return webView;
   }
 
   /**

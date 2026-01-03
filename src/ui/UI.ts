@@ -15,6 +15,7 @@ import {LabelView, LabelViewOptions} from './components/LabelView';
 import {TextButton, TextButtonOptions} from './components/TextButton';
 import {TextView, TextViewOptions} from './components/TextView';
 import {VideoView, VideoViewOptions} from './components/VideoView';
+import {WebView, WebViewOptions} from './components/WebView';
 import {Panel} from './core/Panel';
 import type {PanelOptions} from './core/PanelOptions';
 import {View} from './core/View';
@@ -35,6 +36,7 @@ export type UIJsonNodeOptions =
   | LabelViewOptions
   | TextButtonOptions
   | VideoViewOptions
+  | WebViewOptions
   | ColOptions
   | GridOptions
   | RowOptions
@@ -153,6 +155,7 @@ UI.registerComponent('TextView', TextView);
 UI.registerComponent('Label', LabelView);
 UI.registerComponent('LabelView', LabelView);
 UI.registerComponent('VideoView', VideoView);
+UI.registerComponent('WebView', WebView);
 UI.registerComponent('TextButton', TextButton);
 UI.registerComponent('IconButton', IconButton);
 UI.registerComponent('IconView', IconView);

@@ -80,6 +80,7 @@ export * from './ui/components/ScrollingTroikaTextView';
 export * from './ui/components/TextButton';
 export * from './ui/components/TextView';
 export * from './ui/components/VideoView';
+export * from './ui/components/WebView';
 export * from './ui/core/Panel';
 export * from './ui/core/PanelMesh';
 export * from './ui/core/Reticle';
@@ -130,6 +131,7 @@ export type {ScrollingTroikaTextViewOptions} from './ui/components/ScrollingTroi
 export type {TextButtonOptions} from './ui/components/TextButton';
 export type {TextViewOptions} from './ui/components/TextView';
 export type {VideoViewOptions} from './ui/components/VideoView';
+export type {WebViewOptions} from './ui/components/WebView';
 export type {PanelOptions} from './ui/core/PanelOptions';
 export type {ViewOptions} from './ui/core/ViewOptions';
 export type {ColOptions} from './ui/layouts/Col';
